@@ -4,7 +4,7 @@ use bevy_prototype_lyon::prelude::*;
 use bevy_inspector_egui::WorldInspectorPlugin;
 
 #[derive(Component)]
-struct PayerSlider;
+struct PlayerSlider;
 
 #[derive(Component)]
 struct EnemySlider;
@@ -30,6 +30,8 @@ fn main() {
         .add_startup_system(setup)
         // add looping systems
         .add_system(slider_move)
+        .add_system(ball_move)
+        .add_system(enemy_move)
         .run();
 }
 
@@ -56,7 +58,7 @@ fn setup(mut commands: Commands) {
             },
             ..default()
         })
-        .insert(PayerSlider);
+        .insert(PlayerSlider);
 
     // spawn enemy slider
     commands
@@ -86,7 +88,7 @@ fn setup(mut commands: Commands) {
 fn slider_move(
     keys: Res<Input<KeyCode>>,
     time: Res<Time>,
-    mut query: Query<&mut Transform, (With<Sprite>, With<PayerSlider>)>, // selects Sprites with PlayerSlider struct
+    mut query: Query<&mut Transform, (With<Sprite>, With<PlayerSlider>, Without<EnemySlider>)>, // selects Sprites with PlayerSlider struct
 ) {
     for mut transform in query.iter_mut() {
         // iterates through the selcted sprites
@@ -105,8 +107,30 @@ fn slider_move(
     }
 }
 
-// fn ball_move(mut query: Query<&mut Transform, (With<shapes::Circle>, With(Ball))>) {
-//     for mut transform in query.iter_mut() {
-//         transform.translation.
-//     }
-// }
+fn enemy_move(
+    time: Res<Time>,
+    mut enemy_query: Query<
+        &mut Transform,
+        (With<Sprite>, With<EnemySlider>, Without<PlayerSlider>),
+    >,
+    ball_query: Query<&Transform, (With<Ball>, Without<PlayerSlider>, Without<EnemySlider>)>,
+) {
+    for mut enemy_transform in enemy_query.iter_mut() {
+        for ball_transform in ball_query.iter() {
+            if ball_transform.translation.y < enemy_transform.translation.y {
+                enemy_transform.translation.y -= 450.0 * time.delta_seconds();
+            }
+
+            if ball_transform.translation.y > enemy_transform.translation.y {
+                enemy_transform.translation.y += 450.0 * time.delta_seconds();
+            }
+        }
+    }
+}
+
+fn ball_move(time: Res<Time>, mut query: Query<&mut Transform, With<Ball>>) {
+    for mut transform in query.iter_mut() {
+        transform.translation.x += 350. * time.delta_seconds();
+        transform.translation.y += 50. * time.delta_seconds();
+    }
+}
